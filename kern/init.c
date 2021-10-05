@@ -17,6 +17,28 @@ uint64_t end_debug;
 
 
 
+<<<<<<< HEAD
+=======
+// Test the stack backtrace function (lab 1 only)
+void
+test_backtrace(int x)
+{
+	cprintf("entering test_backtrace %d\n", x);
+	if (x > 0)
+		test_backtrace(x-1);
+	else
+		mon_backtrace(0, 0, 0);
+	cprintf("leaving test_backtrace %d\n", x);
+}
+
+int test_func(int a, int b, int i) {
+	if (i == 0) {
+		a = test_func(6, 8, 1);
+	}
+	return a + b;
+}
+
+>>>>>>> lab1
 void
 i386_init(void)
 {
@@ -33,15 +55,28 @@ i386_init(void)
 	// Can't call cprintf until after we do this!
 	cons_init();
 
+	//test func
+	int a = test_func(2, 3, 0);
+
 	cprintf("6828 decimal is %o octal!\n", 6828);
 
 	extern char end[];
 	end_debug = read_section_headers((0x10000+KERNBASE), (uintptr_t)end);
 
+<<<<<<< HEAD
 	// Lab 2 memory management initialization functions
 	x64_vm_init();
 
 
+=======
+	//To trace
+    //int x = 1, y = 3, z = 4;
+	//cprintf("x %d, y %x, z %d\n", x, y, z);
+	//unsigned int i = 0x00646c72;
+    //cprintf("H%x Wo%s", 57616, &i);
+	//cprintf("x=%d y=%d", 3);
+	//Finishing chasing
+>>>>>>> lab1
 
 	// Drop into the kernel monitor.
 	while (1)
