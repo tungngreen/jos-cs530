@@ -17,8 +17,6 @@ uint64_t end_debug;
 
 
 
-<<<<<<< HEAD
-=======
 // Test the stack backtrace function (lab 1 only)
 void
 test_backtrace(int x)
@@ -38,7 +36,6 @@ int test_func(int a, int b, int i) {
 	return a + b;
 }
 
->>>>>>> lab1
 void
 i386_init(void)
 {
@@ -63,12 +60,10 @@ i386_init(void)
 	extern char end[];
 	end_debug = read_section_headers((0x10000+KERNBASE), (uintptr_t)end);
 
-<<<<<<< HEAD
 	// Lab 2 memory management initialization functions
 	x64_vm_init();
 
 
-=======
 	//To trace
     //int x = 1, y = 3, z = 4;
 	//cprintf("x %d, y %x, z %d\n", x, y, z);
@@ -76,7 +71,6 @@ i386_init(void)
     //cprintf("H%x Wo%s", 57616, &i);
 	//cprintf("x=%d y=%d", 3);
 	//Finishing chasing
->>>>>>> lab1
 
 	// Drop into the kernel monitor.
 	while (1)

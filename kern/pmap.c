@@ -196,8 +196,7 @@ static void page_initpp(struct PageInfo *pp);
 // This function may ONLY be used during initialization,
 // before the page_free_list list has been set up.
 static void *
-boot_alloc(uint32_t n)
-{
+boot_alloc(uint32_t n) {
 	static char *nextfree;	// virtual address of next byte of free memory
 	char *result;
 
@@ -214,10 +213,22 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
+	// 
 	// LAB 2: Your code here.
 
-	return NULL;
+	// If n>0, allocates enough pages of contiguous physical memory to hold 'n'
+	// bytes.  Doesn't initialize the memory.  Returns a kernel virtual address.
+	result = nextfree;
+	if (n > 0) {
+		nextfree = ROUNDUP(nextfree + n, PGSIZE); 
+		if (((uintptr_t) nextfree - KERNBASE) > PTSIZE) {
+			panic("Out of memory!", n);
+		}
+	} else if (n == 0) {
+		//not allocating anything
+	}
+
+	return result;
 }
 
 // Set up a four-level page table:
