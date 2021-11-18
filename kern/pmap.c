@@ -386,6 +386,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
+	uint64_t CPU_kstk_addr;
+	for (int i = 0; i < NCPU; i++) {
+		CPU_kstk_addr = KSTACKTOP - (i + 1) * KSTKSIZE - i * KSTKGAP;
+		boot_map_region(boot_pml4e, CPU_kstk_addr, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W);
+	}
 
 }
 
@@ -447,6 +452,9 @@ page_init(void)
 			// Then comes the IO hole [IOPHYSMEM, EXTPHYSMEM), which must
 			// never be allocated.
 			pages[i].pp_ref = 1;
+		} else if (i == (MPENTRY_PADDR / PGSIZE)) { //make sure that the page at MPENTRY_PADDR is marked as use
+			pages[i].pp_ref = 1;
+
 		} else {
 			//the rest is free
 			pages[i].pp_ref = 0;
@@ -808,7 +816,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+
+	uint64_t mmio_size = ROUNDUP(size, PGSIZE);
+	if (base + mmio_size > MMIOLIM) {
+		panic("MMIO memory overflows.\n");
+	}
+	boot_map_region(boot_pml4e, base, mmio_size, pa, PTE_PCD | PTE_PWT | PTE_W);
+	base += mmio_size;
+	
+	return (void *) (base - mmio_size);
+	//panic("mmio_map_region not implemented");
 }
 
 static uintptr_t user_mem_check_addr;

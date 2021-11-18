@@ -433,8 +433,8 @@ env_create(uint8_t *binary, enum EnvType type)
 	//TODO : What if fail?
 	if (ret) 
 		panic("env_create fail \n");	
-	e->env_type = type;
 	load_icode(e, binary);
+	e->env_type = type;
 }
 
 //
@@ -592,14 +592,16 @@ env_run(struct Env *e)
 	curenv = e;
 	curenv->env_status=ENV_RUNNING;
 	curenv->env_runs++;
+
+	unlock_kernel();
 	lcr3(curenv->env_cr3);
 
 	// Step 2
-	env_pop_tf(&curenv->env_tf);
+	env_pop_tf(&(curenv->env_tf));
 
 
 
 
-	panic("env_run not yet implemented");
+	//panic("env_run not yet implemented");
 }
 
