@@ -8,37 +8,11 @@
 #include <kern/monitor.h>
 #include <kern/env.h>
 #include <kern/syscall.h>
-#include <kern/sched.h>
-#include <kern/kclock.h>
-#include <kern/picirq.h>
-#include <kern/cpu.h>
-#include <kern/spinlock.h>
 
 extern uintptr_t gdtdesc_64;
 struct Taskstate ts;
 extern struct Segdesc gdt[];
 extern long gdt_pd;
-
-extern void DIVIDE_F();
-extern void DEBUG_F();
-extern void NMI_F();
-extern void BRKPT_F();
-extern void OFLOW_F();
-extern void BOUND_F();
-extern void ILLOP_F();
-extern void DEVICE_F();
-extern void DBLFLT_F();
-extern void TSS_F();
-extern void SEGNP_F();
-extern void STACK_F();
-extern void GPFLT_F();
-extern void PGFLT_F();
-extern void FPERR_F();
-extern void ALIGN_F();
-extern void MCHK_F();
-extern void SIMDERR_F();
-extern void SYSCALL_F();
-extern void DEFAULT_F();
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -82,10 +56,29 @@ static const char *trapname(int trapno)
 		return excnames[trapno];
 	if (trapno == T_SYSCALL)
 		return "System call";
-	if (trapno >= IRQ_OFFSET && trapno < IRQ_OFFSET + 16)
-		return "Hardware Interrupt";
 	return "(unknown trap)";
 }
+
+
+extern void T16_DIVIDE();
+extern void T16_DEBUG();
+extern void T16_NMI();
+extern void T16_BRKPT();
+extern void T16_OFLOW();
+extern void T16_BOUND();
+extern void T16_ILLOP();
+extern void T16_DEVICE();
+extern void T16_DBLFLT();
+extern void T16_TSS();
+extern void T16_SEGNP();
+extern void T16_STACK();
+extern void T16_GPFLT();
+extern void T16_PGFLT();
+extern void T16_FPERR();
+extern void T16_ALIGN();
+extern void T16_MCHK();
+extern void T16_SIMDERR();
+extern void T16_SYSCALL();
 
 
 void
@@ -94,26 +87,25 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	SETGATE(idt[T_DIVIDE], 1, GD_KT, DIVIDE_F, 0);
-	SETGATE(idt[T_DEBUG], 1, GD_KT, DEBUG_F, 0);
-	SETGATE(idt[T_NMI], 0, GD_KT, DEBUG_F, 0);
-	SETGATE(idt[T_BRKPT], 1, GD_KT, BRKPT_F, 3);
-	SETGATE(idt[T_OFLOW], 1, GD_KT, OFLOW_F, 0);
-	SETGATE(idt[T_BOUND], 1, GD_KT, OFLOW_F, 0);
-	SETGATE(idt[T_ILLOP], 1, GD_KT, ILLOP_F, 0);
-	SETGATE(idt[T_DEVICE], 1, GD_KT, DEVICE_F, 0);
-	SETGATE(idt[T_DBLFLT], 1, GD_KT, DBLFLT_F, 0);
-	SETGATE(idt[T_TSS],1,GD_KT,TSS_F, 0);
-	SETGATE(idt[T_SEGNP],1,GD_KT,SEGNP_F, 0);
-	SETGATE(idt[T_STACK],1,GD_KT,STACK_F, 0);
-	SETGATE(idt[T_GPFLT],1,GD_KT,GPFLT_F, 0);
-	SETGATE(idt[T_PGFLT],1,GD_KT,PGFLT_F, 0);
-	SETGATE(idt[T_FPERR],1,GD_KT,FPERR_F, 0);
-	SETGATE(idt[T_ALIGN],1,GD_KT,ALIGN_F, 0);
-	SETGATE(idt[T_MCHK],1,GD_KT,MCHK_F, 0);
-	SETGATE(idt[T_SIMDERR],1,GD_KT,SIMDERR_F, 0);
-	SETGATE(idt[T_SYSCALL],0,GD_KT,SYSCALL_F, 3);
-
+	SETGATE(idt[T_DIVIDE],1,GD_KT,T16_DIVIDE, 0);
+	SETGATE(idt[T_DEBUG],1,GD_KT,T16_DEBUG, 0);
+	SETGATE(idt[T_NMI],0,GD_KT,T16_DEBUG, 0);
+	SETGATE(idt[T_BRKPT],1,GD_KT,T16_BRKPT, 3);
+	SETGATE(idt[T_OFLOW],1,GD_KT,T16_OFLOW, 0);
+	SETGATE(idt[T_BOUND],1,GD_KT,T16_BOUND, 0);
+	SETGATE(idt[T_ILLOP],1,GD_KT,T16_ILLOP, 0);
+	SETGATE(idt[T_DEVICE],1,GD_KT,T16_DEVICE, 0);
+	SETGATE(idt[T_DBLFLT],1,GD_KT,T16_DBLFLT, 0);
+	SETGATE(idt[T_TSS],1,GD_KT,T16_TSS, 0);
+	SETGATE(idt[T_SEGNP],1,GD_KT,T16_SEGNP, 0);
+	SETGATE(idt[T_STACK],1,GD_KT,T16_STACK, 0);
+	SETGATE(idt[T_GPFLT],1,GD_KT,T16_GPFLT, 0);
+	SETGATE(idt[T_PGFLT],1,GD_KT,T16_PGFLT, 0);
+	SETGATE(idt[T_FPERR],1,GD_KT,T16_FPERR, 0);
+	SETGATE(idt[T_ALIGN],1,GD_KT,T16_ALIGN, 0);
+	SETGATE(idt[T_MCHK],1,GD_KT,T16_MCHK, 0);
+	SETGATE(idt[T_SIMDERR],1,GD_KT,T16_SIMDERR, 0);
+	SETGATE(idt[T_SYSCALL],1,GD_KT,T16_SYSCALL, 3);
 	idt_pd.pd_lim = sizeof(idt)-1;
 	idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
@@ -124,29 +116,6 @@ trap_init(void)
 void
 trap_init_percpu(void)
 {
-	// The example code here sets up the Task State Segment (TSS) and
-	// the TSS descriptor for CPU 0. But it is incorrect if we are
-	// running on other CPUs because each CPU has its own kernel stack.
-	// Fix the code so that it works for all CPUs.
-	//
-	// Hints:
-	//   - The macro "thiscpu" always refers to the current CPU's
-	//     struct CpuInfo;
-	//   - The ID of the current CPU is given by cpunum() or
-	//     thiscpu->cpu_id;
-	//   - Use "thiscpu->cpu_ts" as the TSS for the current CPU,
-	//     rather than the global "ts" variable;
-	//   - Use gdt[(GD_TSS0 >> 3) + 2*i] for CPU i's TSS descriptor;
-	//   - You mapped the per-CPU kernel stacks in mem_init_mp()
-	//
-	// ltr sets a 'busy' flag in the TSS selector, so if you
-	// accidentally load the same TSS on more than one CPU, you'll
-	// get a triple fault.  If you set up an individual CPU's TSS
-	// wrong, you may not get a fault until you try to return from
-	// user space on that CPU.
-	//
-	// LAB 4: Your code here:
-
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
@@ -165,7 +134,7 @@ trap_init_percpu(void)
 void
 print_trapframe(struct Trapframe *tf)
 {
-	cprintf("TRAP frame at %p from CPU %d\n", tf, cpunum());
+	cprintf("TRAP frame at %p\n", tf);
 	print_regs(&tf->tf_regs);
 	cprintf("  es   0x----%04x\n", tf->tf_es);
 	cprintf("  ds   0x----%04x\n", tf->tf_ds);
@@ -220,7 +189,7 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-		if (tf->tf_trapno == T_PGFLT) {
+	if (tf->tf_trapno == T_PGFLT) {
 		page_fault_handler(tf);
 		return;
 	}
@@ -242,23 +211,6 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	}
 
-<<<<<<< HEAD
-	// Handle spurious interrupts
-	// The hardware sometimes raises these because of noise on the
-	// IRQ line or other reasons. We don't care.
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
-		cprintf("Spurious interrupt on irq 7\n");
-		print_trapframe(tf);
-		return;
-	}
-
-	// Handle clock interrupts. Don't forget to acknowledge the
-	// interrupt using lapic_eoi() before calling the scheduler!
-	// LAB 4: Your code here.
-
-||||||| merged common ancestors
-=======
->>>>>>> lab3
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
@@ -277,33 +229,16 @@ trap(struct Trapframe *tf)
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");
 
-	// Halt the CPU if some other CPU has called panic()
-	extern char *panicstr;
-	if (panicstr)
-		asm volatile("hlt");
-
-	// Re-acqurie the big kernel lock if we were halted in
-	// sched_yield()
-	if (xchg(&thiscpu->cpu_status, CPU_STARTED) == CPU_HALTED)
-		lock_kernel();
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
 	assert(!(read_eflags() & FL_IF));
 
+	cprintf("Incoming TRAP frame at %p\n", tf);
+
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
-		// Acquire the big kernel lock before doing any
-		// serious kernel work.
-		// LAB 4: Your code here.
 		assert(curenv);
-
-		// Garbage collect if current enviroment is a zombie
-		if (curenv->env_status == ENV_DYING) {
-			env_free(curenv);
-			curenv = NULL;
-			sched_yield();
-		}
 
 		// Copy trap frame (which is currently on the stack)
 		// into 'curenv->env_tf', so that running the environment
@@ -320,13 +255,9 @@ trap(struct Trapframe *tf)
 	// Dispatch based on what type of trap occurred
 	trap_dispatch(tf);
 
-	// If we made it to this point, then no other environment was
-	// scheduled, so we should return to the current environment
-	// if doing so makes sense.
-	if (curenv && curenv->env_status == ENV_RUNNING)
-		env_run(curenv);
-	else
-		sched_yield();
+	// Return to the current environment, which should be running.
+	assert(curenv && curenv->env_status == ENV_RUNNING);
+	env_run(curenv);
 }
 
 
@@ -341,44 +272,12 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 3: Your code here.
-
+	// If page fault occur in kernel
 	if ((tf->tf_cs & 3) == 0)
 		panic("Page fault occured in kernel mode");
 
-
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
-
-	// Call the environment's page fault upcall, if one exists.  Set up a
-	// page fault stack frame on the user exception stack (below
-	// UXSTACKTOP), then branch to curenv->env_pgfault_upcall.
-	//
-	// The page fault upcall might cause another page fault, in which case
-	// we branch to the page fault upcall recursively, pushing another
-	// page fault stack frame on top of the user exception stack.
-	//
-	// The trap handler needs one word of scratch space at the top of the
-	// trap-time stack in order to return.  In the non-recursive case, we
-	// don't have to worry about this because the top of the regular user
-	// stack is free.  In the recursive case, this means we have to leave
-	// an extra word between the current top of the exception stack and
-	// the new stack frame because the exception stack _is_ the trap-time
-	// stack.
-	//
-	//
-	// If there's no page fault upcall, the environment didn't allocate a
-	// page for its exception stack or can't write to it, or the exception
-	// stack overflows, then destroy the environment that caused the fault.
-	// Note that the grade script assumes you will first check for the page
-	// fault upcall and print the "user fault va" message below if there is
-	// none.  The remaining three checks can be combined into a single test.
-	//
-	// Hints:
-	//   user_mem_assert() and env_run() are useful here.
-	//   To change what the user environment runs, modify 'curenv->env_tf'
-	//   (the 'tf' variable points at 'curenv->env_tf').
-
-	// LAB 4: Your code here.
 
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
