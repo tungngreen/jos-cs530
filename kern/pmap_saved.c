@@ -197,7 +197,8 @@ static void page_initpp(struct PageInfo *pp);
 // This function may ONLY be used during initialization,
 // before the page_free_list list has been set up.
 static void *
-boot_alloc(uint32_t n) {
+boot_alloc(uint32_t n)
+{
 	static char *nextfree;	// virtual address of next byte of free memory
 	char *result;
 
@@ -214,11 +215,9 @@ boot_alloc(uint32_t n) {
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	// 
+	//
 	// LAB 2: Your code here.
-
-	// If n>0, allocates enough pages of contiguous physical memory to hold 'n'
-	// bytes.  Doesn't initialize the memory.  Returns a kernel virtual address.
+	
 	result = nextfree;
 	if (n > 0) {
 		nextfree = ROUNDUP(nextfree + n, PGSIZE); 
@@ -267,15 +266,13 @@ x64_vm_init(void)
 	// Your code goes here:
 	uint32_t page_state_size = sizeof(struct PageInfo);
 	pages = (struct PageInfo*) boot_alloc(npages * page_state_size);
-
+	
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
-
-	uint32_t env_size = ROUNDUP(sizeof(struct Env) * NENV, PGSIZE);
-	envs = boot_alloc(env_size);
-
+	env = (struct Env *) boot_alloc (NENV * sizeof(struct Env));
+	envs = env;
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -292,7 +289,6 @@ x64_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-	
 	/* 
 		- UVPT: User read-only virtual page table (see 'uvpt' below)
 			#define UVPT    0x10000000000
@@ -304,9 +300,8 @@ x64_vm_init(void)
 				+ 0: read-only
 				+ 1: writable
 	*/
-	boot_map_region(boot_pml4e, UPAGES, npages * page_state_size, PADDR(pages), PTE_U);
-	boot_map_region(boot_pml4e, (uintptr_t) pages, PGSIZE, PADDR(pages), PTE_W);
-
+	boot_map_region(pml4e, UPAGES, npages * page_state_size, PADDR(pages), PTE_U);
+	boot_map_region(pml4e, (uintptr_t) pages, PGSIZE, PADDR(pages), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
@@ -315,10 +310,8 @@ x64_vm_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
-
-	boot_map_region(boot_pml4e, UENVS, env_size, PADDR(envs), PTE_U);
-	boot_map_region(boot_pml4e, (uintptr_t) envs, PGSIZE, PADDR(envs), PTE_W);
-
+	boot_map_region(pml4e, UENVS, NENV * sizeof(struct Env) ,PADDR(envs),PTE_U); 
+	boot_map_region(pml4e, (uintptr_t) env, PGSIZE,PADDR(envs),PTE_W); 
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -333,7 +326,6 @@ x64_vm_init(void)
 	// Your code goes here:
 	boot_map_region(pml4e, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
 
-
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. We have detected the number
 	// of physical pages to be npages.
@@ -342,8 +334,6 @@ x64_vm_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 	boot_map_region(pml4e, KERNBASE, npages * PGSIZE, 0x0, PTE_W);
-
-
 	// Check that the initial page directory has been set up correctly.
 	check_page_free_list(1);
 	check_page_alloc();
@@ -416,10 +406,11 @@ page_init(void)
 		} else {
 			//the rest is free
 			pages[i].pp_ref = 0;
-            pages[i].pp_link = page_free_list; //make sure the direction is preserved
-            page_free_list = &pages[i];
+            		pages[i].pp_link = page_free_list; //make sure the direction is preserved
+            		page_free_list = &pages[i];
 		}
 	}
+	
 }
 
 //
@@ -474,6 +465,7 @@ page_free(struct PageInfo *pp)
 	}
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
+
 }
 
 //
@@ -515,7 +507,6 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 {
-
 	struct PageInfo *newPage = NULL; //create a new page
 	pml4e_t *pml4_entry = &pml4e[PML4(va)]; //get the PML4 of va
 	if (!*pml4_entry) {
@@ -549,7 +540,6 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 // Hints are the same as in pml4e_walk
 pte_t *
 pdpe_walk(pdpe_t *pdpe,const void *va,int create){
-
 	struct PageInfo *newPage = NULL;
 	pdpe_t *pdp_entry = &pdpe[PDPE(va)];
 
@@ -667,10 +657,10 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	if (*pte & PTE_P) { //& with PTE_P = 0x001 to check if this page is already present
 		page_remove(pml4e, va); //remove the page
 	}
-		
 	
 	pp->pp_ref++;
 	*pte = (page2pa(pp) & ~0xFFF) | perm | PTE_P; //set permission for the physical entry
+	//pml4e[PDX(va)] |= perm | PTE_P; //set the permission for the virtual one 
 	pml4e[PML4(va)] |= perm | PTE_P; //set the permission for the virtual one 
 	return 0;
 }
@@ -765,13 +755,11 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
-	// (1) Check if the memory range is below ULIM
+	// Accessing kernel virtual address
 	if ((uintptr_t) va >= ULIM || (uintptr_t) va + len >= ULIM ){
 		user_mem_check_addr = (uintptr_t) va;
 		return -E_FAULT;
 	}
-
-	// (2) Check if the permission is given to access the mighty table itself.
 	uintptr_t lower = (uintptr_t)ROUNDDOWN(va,PGSIZE);
 	uintptr_t upper = (uintptr_t)ROUNDUP(va + len,PGSIZE);
 	int i;
@@ -981,8 +969,10 @@ check_boot_pml4e(pml4e_t *pml4e)
 	// check envs array (new test for lab 3)
 	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE) {
+		//cprintf("ret %p \n",check_va2pa(pml4e,UENVS + i));
 		assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
 	}
+
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pml4e, KERNBASE + i) == i);
