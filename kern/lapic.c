@@ -123,8 +123,9 @@ cpunum(void)
 void
 lapic_eoi(void)
 {
-	if (lapic)
+	if (lapic) {
 		lapicw(EOI, 0);
+	}
 }
 
 // Spin for a given number of microseconds.

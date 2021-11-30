@@ -24,6 +24,25 @@ static void boot_aps(void);
 
 
 
+// Test the stack backtrace function (lab 1 only)
+void
+test_backtrace(int x)
+{
+	cprintf("entering test_backtrace %d\n", x);
+	if (x > 0)
+		test_backtrace(x-1);
+	else
+		mon_backtrace(0, 0, 0);
+	cprintf("leaving test_backtrace %d\n", x);
+}
+
+int test_func(int a, int b, int i) {
+	if (i == 0) {
+		a = test_func(6, 8, 1);
+	}
+	return a + b;
+}
+
 void
 i386_init(void)
 {
@@ -39,6 +58,9 @@ i386_init(void)
 	// Initialize the console.
 	// Can't call cprintf until after we do this!
 	cons_init();
+
+	//test func
+	int a = test_func(2, 3, 0);
 
 	cprintf("6828 decimal is %o octal!\n", 6828);
 
@@ -61,10 +83,12 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
+	lock_kernel();
 
 	// Starting non-boot CPUs
 	boot_aps();
 
+<<<<<<< HEAD
 
 
 
@@ -72,13 +96,33 @@ i386_init(void)
 	ENV_CREATE(fs_fs, ENV_TYPE_FS);
 
 
+||||||| merged common ancestors
+
+
+
+
+=======
+>>>>>>> lab4
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
 
+<<<<<<< HEAD
 	ENV_CREATE(user_icode, ENV_TYPE_USER);
+||||||| merged common ancestors
+	ENV_CREATE(user_primes, ENV_TYPE_USER);
+=======
+	ENV_CREATE(user_primes, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+>>>>>>> lab4
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
@@ -137,9 +181,8 @@ mp_main(void)
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
-
-	// Remove this after you finish Exercise 4
-	for (;;);
+	lock_kernel();
+	sched_yield();
 }
 
 
