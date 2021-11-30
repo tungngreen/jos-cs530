@@ -429,12 +429,9 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
-<<<<<<< HEAD
 
 	// If this is the file server (type == ENV_TYPE_FS) give it I/O privileges.
 	// LAB 5: Your code here.
-||||||| merged common ancestors
-=======
 	struct Env *e;
 	int ret = env_alloc(&e, 0);
 	//TODO : What if fail?
@@ -442,7 +439,6 @@ env_create(uint8_t *binary, enum EnvType type)
 		panic("env_create fail \n");	
 	load_icode(e, binary);
 	e->env_type = type;
->>>>>>> lab4
 }
 
 //
