@@ -232,7 +232,7 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
-	assert(!(read_eflags() & FL_IF));
+	//assert(!(read_eflags() & FL_IF));
 
 	cprintf("Incoming TRAP frame at %p\n", tf);
 

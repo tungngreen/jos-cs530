@@ -454,6 +454,7 @@ page_init(void)
 			pages[i].pp_ref = 1;
 		} else if (i == (MPENTRY_PADDR / PGSIZE)) { //make sure that the page at MPENTRY_PADDR is marked as use
 			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
 
 		} else {
 			//the rest is free

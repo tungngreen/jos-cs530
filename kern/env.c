@@ -276,6 +276,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 
 	// Enable interrupts while in user mode.
 	// LAB 4: Your code here.
+	e->env_tf.tf_eflags = e->env_tf.tf_eflags | FL_IF;
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
@@ -315,7 +316,7 @@ region_alloc(struct Env *e, void *va, size_t len)
 	int i;
 	for (i = 0;i < phy_len/PGSIZE; i++) {
 		struct PageInfo *pp = page_alloc(0);	
-		int ret = page_insert(e->env_pml4e, pp ,(void *) (lower + i * PGSIZE),PTE_U | PTE_W);
+		int ret = page_insert(e->env_pml4e, pp ,(void *) (lower + i * PGSIZE), PTE_U | PTE_W);
 		if (ret) {
 			panic("region alloc fail \n");
 		}
@@ -403,7 +404,7 @@ load_icode(struct Env *e, uint8_t *binary)
 		//Clearing remaining va
 		memset((void *) (ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
 		// Return to kernel address space
-		//lcr3(boot_cr3);
+		lcr3(boot_cr3);
 	}
 
 	//Set Entry Point

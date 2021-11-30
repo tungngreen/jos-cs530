@@ -88,27 +88,20 @@ i386_init(void)
 	// Starting non-boot CPUs
 	boot_aps();
 
-
-	//To trace
-    //int x = 1, y = 3, z = 4;
-	//cprintf("x %d, y %x, z %d\n", x, y, z);
-	//unsigned int i = 0x00646c72;
-    //cprintf("H%x Wo%s", 57616, &i);
-	//cprintf("x=%d y=%d", 3);
-	//Finishing chasing
-
-
-
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
 
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
-	ENV_CREATE(user_yield, ENV_TYPE_USER);
+	ENV_CREATE(user_primes, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
+	// ENV_CREATE(user_yield, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!

@@ -49,21 +49,20 @@ sched_yield(void)
 
 	idle = curenv;
 
-    uint8_t env_index = idle ? ENVX(idle->env_id) : -1;
+    uint16_t env_index = idle ? ENVX(idle->env_id) : -1;
 
-	uint8_t next_env_id;
+	uint16_t next_env_id;
 	for (int i = 1; i < NENV; i++) {
 		next_env_id = (env_index + i) % NENV;
-		if (envs[next_env_id].env_status == ENV_RUNNABLE) {
+		if ((envs[next_env_id].env_status == ENV_RUNNABLE)) {
 			env_run(&envs[next_env_id]);
 			break;
 		}
 	}
-
-    if(idle != NULL && idle->env_status == ENV_RUNNING) {
+	
+    if(idle != NULL && idle->env_status == ENV_RUNNING && idle == curenv) {
         env_run(idle);
     }
-
     // sched_halt never returns
     sched_halt();
 }
