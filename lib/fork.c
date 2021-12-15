@@ -7,6 +7,12 @@
 // It is one of the bits explicitly allocated to user processes (PTE_AVAIL).
 #define PTE_COW		0x800
 
+extern void _pgfault_upcall(void);
+extern volatile pte_t uvpt[];
+extern volatile pde_t uvpd[];
+extern volatile pde_t uvpde[];  
+extern volatile pde_t uvpml4e[];
+
 //
 // Custom page fault handler - if faulting page is copy-on-write,
 // map in our own private writable copy.
@@ -34,8 +40,73 @@ pgfault(struct UTrapframe *utf)
 	//   No need to explicitly delete the old page's mapping.
 
 	// LAB 4: Your code here.
+	// pte_t pte = uvpt[VPN((uintptr_t) addr)];
+	// pte_t ptd = uvpd[VPD(addr)];
+	// pte_t ptde = uvpd[VPDPE(addr)];
+	// pte_t pml4e = uvpd[VPML4E(addr)];
+    // envid_t envid = sys_getenvid();
 
-	panic("pgfault not implemented");
+
+	//pgfault() checks for FEC_WR in the error code to make sure that this is a write
+	// cprintf("env id %08x\n",envid);
+	// if (!(FEC_WR & err)) {
+	// 	panic("pgfault: not a write\n");
+	// }
+	// if (!(PTE_COW & pte)) {
+	// 	panic("pgfault: not a copy-on-write\n");
+
+	// }
+
+	// //Allocate a new page, map it at a temporary location (PFTEMP)
+	// r = sys_page_alloc(0, (void *)PFTEMP, (PTE_W | PTE_U | PTE_P));
+	// if (r < 0) {
+	// 	panic("pgfault: %e", r);
+	// }
+
+	// // copy the data from the old page to the new page
+	// memmove((void *) PFTEMP, (void *) ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	// r = sys_page_map(0, (void *)PFTEMP, 0, (void *)ROUNDDOWN(addr, PGSIZE), (PTE_W | PTE_U | PTE_P));
+	// if (r < 0) {
+	// 	panic("pgfault: %e", r);
+	// }
+
+	// //unmap the temporary page
+	// r = sys_page_unmap(0, (void *)PFTEMP);
+	// if (r < 0) {
+	// 	panic("pgfault: %e", r);
+	// }
+
+	pte_t pte = uvpt[PGNUM(addr)];
+    envid_t envid = thisenv->env_id;
+
+	//pgfault() checks for FEC_WR in the error code to make sure that this is a write
+	if ((FEC_WR & err) == 0) {
+		panic("pgfault: not a write\n");
+	}
+	if ((PTE_COW & uvpt[PGNUM((uintptr_t)addr)]) == 0) {
+		panic("pgfault: not a copy-on-write\n");
+
+	}
+
+	//Allocate a new page, map it at a temporary location (PFTEMP)
+	r = sys_page_alloc(0, PFTEMP, (PTE_W | PTE_U | PTE_P));
+	if (r < 0) {
+		panic("pgfault: %e", r);
+	}
+
+	// copy the data from the old page to the new page
+	memcpy(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+	r = sys_page_map(0, PFTEMP, 0, ROUNDDOWN(addr, PGSIZE), (PTE_W | PTE_U | PTE_P));
+	if (r < 0) {
+		panic("pgfault: %e", r);
+	}
+
+	//unmap the temporary page
+	r = sys_page_unmap(0, PFTEMP);
+	if (r < 0) {
+		panic("pgfault: %e", r);
+	}
+
 }
 
 //
@@ -49,13 +120,32 @@ pgfault(struct UTrapframe *utf)
 // Returns: 0 on success, < 0 on error.
 // It is also OK to panic on error.
 //
+
 static int
 duppage(envid_t envid, unsigned pn)
 {
 	int r;
 
 	// LAB 4: Your code here.
-	panic("duppage not implemented");
+	uintptr_t va = pn * PGSIZE;
+	int ret;
+	if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
+		
+		ret = sys_page_map(thisenv->env_id, (void *) va, envid, (void *) va, PTE_COW | PTE_U | PTE_P);
+		if (ret < 0) {
+			panic("duppage: %e", ret);
+		}
+		ret = sys_page_map(thisenv->env_id, (void *) va, thisenv->env_id, (void *) va, PTE_COW | PTE_U | PTE_P);
+		if (ret < 0) {
+			panic("duppage: %e", ret);
+		}
+	} else {
+		ret = sys_page_map(thisenv->env_id, (void *) va, envid, (void *) va, PTE_U | PTE_P);
+		if (ret < 0) {
+			panic("duppage: %e", ret);
+		}
+	}
+	//panic("duppage not implemented");
 	return 0;
 }
 
@@ -79,7 +169,58 @@ envid_t
 fork(void)
 {
 	// LAB 4: Your code here.
-	panic("fork not implemented");
+
+	//The parent install pgfault using set_pgfault_handler().
+	set_pgfault_handler(pgfault);
+
+	envid_t child_envid = sys_exofork();
+
+	if (child_envid < 0) { //failed to create a child
+		panic("fork: %e", child_envid);
+	}
+	if (child_envid == 0) { //this is the child
+		// Remember to fix "thisenv" in the child process.
+		thisenv = &envs[ENVX(sys_getenvid())];
+		return 0;
+	}
+
+	for (uintptr_t addr = 0; addr < USTACKTOP; addr += PGSIZE) {
+		//if (((uvpd[VPD(addr)] & PTE_P) == PTE_P) && ((uvpt[PGNUM(addr)] & PTE_P) == PTE_P)) {
+		if (!(uvpml4e[VPML4E(addr)] & PTE_P)) {
+			continue;
+		}	
+		if (!(uvpde[VPDPE(addr)] & PTE_P)) {
+			continue;
+		}
+
+		if (!(uvpd[VPD(addr)] & PTE_P)) {
+			continue;
+		}
+		if (uvpt[PGNUM(addr)] & PTE_P) {
+			duppage(child_envid, PGNUM(addr));
+		}
+
+	}
+
+	int ret = sys_page_alloc(child_envid, (void *) (UXSTACKTOP - PGSIZE), PTE_P | PTE_U | PTE_W);
+	if (ret < 0) {
+		panic("fork: %e", ret);
+	}
+	ret = sys_env_set_pgfault_upcall(child_envid, _pgfault_upcall);
+	if (ret < 0) {
+		panic("fork: %e", ret);
+	}
+
+	ret = sys_env_set_status(child_envid, ENV_RUNNABLE);
+	if (ret < 0) {
+		panic("fork: %e", ret);
+	}
+
+	
+	// Returns: child's envid to the parent
+	return child_envid;
+
+	//panic("fork not implemented");
 }
 
 // Challenge!

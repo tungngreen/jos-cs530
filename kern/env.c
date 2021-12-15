@@ -123,6 +123,17 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
+	int i;
+	for (i = 0; i < NENV; i++) {
+		envs[i].env_id = 0;
+		envs[i].env_status = ENV_FREE;
+		if (i != NENV - 1){
+			envs[i].env_link = &envs[i + 1];
+		} else {
+			envs[i].env_link = NULL;
+		}
+	}
+	env_free_list = &envs[0];
 
 	// Per-CPU part of the initialization
 	env_init_percpu();
@@ -189,6 +200,16 @@ env_setup_vm(struct Env *e)
 	//    - The functions in kern/pmap.h are handy.
 
 	// LAB 3: Your code here.
+	// Clear pml4e
+	// p -> our env's pml4e
+	pml4e_t *pml4e = page2kva(p);
+	memset(pml4e,0,PGSIZE);
+	pml4e[PML4(UTOP)] = boot_pml4e[PML4(UTOP)];	
+	// incre pp_ref for pml4e[PML4(UTOP)] for env_free to work properly
+	p->pp_ref++;
+	
+	e->env_pml4e = pml4e;
+	e->env_cr3 = PADDR(pml4e);
 
 	// UVPT maps the env's own page table read-only.
 	// Permissions: kernel R, user R
@@ -255,6 +276,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 
 	// Enable interrupts while in user mode.
 	// LAB 4: Your code here.
+	e->env_tf.tf_eflags = e->env_tf.tf_eflags | FL_IF;
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
@@ -287,6 +309,18 @@ region_alloc(struct Env *e, void *va, size_t len)
 	//   'va' and 'len' values that are not page-aligned.
 	//   You should round va down, and round (va + len) up.
 	//   (Watch out for corner-cases!)
+	uintptr_t lower = (uintptr_t) ROUNDDOWN(va,PGSIZE);
+	uintptr_t upper = (uintptr_t) ROUNDUP(va + len, PGSIZE);
+	//This number will be page aligned
+	uint64_t phy_len = upper - lower;
+	int i;
+	for (i = 0;i < phy_len/PGSIZE; i++) {
+		struct PageInfo *pp = page_alloc(0);	
+		int ret = page_insert(e->env_pml4e, pp ,(void *) (lower + i * PGSIZE), PTE_U | PTE_W);
+		if (ret) {
+			panic("region alloc fail \n");
+		}
+	}
 }
 
 //
@@ -343,10 +377,44 @@ load_icode(struct Env *e, uint8_t *binary)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	// LAB 3: Your code here
+	int i;
+	struct Elf *elfhd = (struct Elf *) binary;
+	struct Proghdr *ph, *eph;
+	ph = (struct Proghdr *) (binary + elfhd->e_phoff);
+	eph = ph + elfhd->e_phnum;
+	//Check elf magic valu
+	if (elfhd->e_magic != ELF_MAGIC) {
+		panic("ELF Maginc value is corrupted");
+	}
+	//Load program to memory
+	for (; ph < eph; ph++) {
+		//check if this segment is loadable
+		if (ph->p_type != ELF_PROG_LOAD)
+			continue;
+		//Allocate segment
+		region_alloc(e, (void*) (ph->p_va),ph->p_memsz);
+		//Load(copy) contents from binary 
+		// Allocated physical page can be discontinous.
+		// Changed to environment's address space
+		lcr3(e->env_cr3);
+		memset((void *) (ROUNDDOWN(ph->p_va,PGSIZE)),0,PGSIZE);
+		//Copy contents from binary
+		//binary is located in kernel address space > UTOP, It is not affect by environment's address space
+		memcpy((void *) (ph->p_va), (void*) (binary + ph->p_offset),ph->p_filesz);
+		//Clearing remaining va
+		memset((void *) (ph->p_va + ph->p_filesz), 0, ph->p_memsz - ph->p_filesz);
+		// Return to kernel address space
+		lcr3(boot_cr3);
+	}
+
+	//Set Entry Point
+	e->env_tf.tf_rip = elfhd->e_entry;
 	// Now map one page for the program's initial stack
 	// at virtual address USTACKTOP - PGSIZE.
 
 	// LAB 3: Your code here.
+	region_alloc(e,(void *) (USTACKTOP - PGSIZE) , PGSIZE);
+	
 	e->elf = binary;
 }
 
@@ -361,6 +429,13 @@ void
 env_create(uint8_t *binary, enum EnvType type)
 {
 	// LAB 3: Your code here.
+	struct Env *e;
+	int ret = env_alloc(&e, 0);
+	//TODO : What if fail?
+	if (ret) 
+		panic("env_create fail \n");	
+	load_icode(e, binary);
+	e->env_type = type;
 }
 
 //
@@ -510,7 +585,24 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 
 	// LAB 3: Your code here.
+	// Step 1
+	if (curenv != NULL) {
+		if (curenv->env_status == ENV_RUNNING)
+			curenv->env_status = ENV_RUNNABLE;
+	}
+	curenv = e;
+	curenv->env_status=ENV_RUNNING;
+	curenv->env_runs++;
 
-	panic("env_run not yet implemented");
+	unlock_kernel();
+	lcr3(curenv->env_cr3);
+
+	// Step 2
+	env_pop_tf(&(curenv->env_tf));
+
+
+
+
+	//panic("env_run not yet implemented");
 }
 

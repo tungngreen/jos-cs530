@@ -18,7 +18,9 @@ umain(int argc, char **argv)
 	// print a message and yield to the other a few times
 	for (i = 0; i < (who ? 10 : 20); i++) {
 		cprintf("%d: I am the %s!\n", i, who ? "parent" : "child");
+		cprintf("%s__1\n", who ? "parent" : "child");
 		sys_yield();
+		cprintf("%s__2\n", who ? "parent" : "child");
 	}
 }
 
