@@ -57,6 +57,7 @@ umain(int argc, char **argv)
 		panic("first opencons used fd %d", r);
 	if ((r = dup(0, 1)) < 0)
 		panic("dup: %e", r);
+	uint8_t count = 0;
 	while (1) {
 		cprintf("init: starting sh\n");
 		r = spawnl("/bin/sh", "sh", (char*)0);
@@ -66,5 +67,9 @@ umain(int argc, char **argv)
 		}
 		cprintf("init waiting\n");
 		wait(r);
+		count += 1;
+		if (count == 5) {
+			break;
+		}
 	}
 }

@@ -48,13 +48,20 @@ bc_pgfault(struct UTrapframe *utf)
 	// Hint: first round addr to page boundary.
 	//
 	// LAB 5: your code here:
-
+	void *fault_addr = ROUNDDOWN(addr,4096);
+	int secno = blockno * 8;
+	int sec_size = 8;
+	r = sys_page_alloc(0,fault_addr, PTE_W | PTE_U | PTE_P);
+	if (r < 0) {
+		panic ("bc_pgfault: %e",r);
+	}
+	r = ide_read (secno,fault_addr,sec_size);
 
 
 	// LAB 5: Your code here
 
 
-	if ((r = sys_page_map(0, addr, 0, addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
+	if ((r = sys_page_map(0, fault_addr, 0, fault_addr, uvpt[PGNUM(addr)] & PTE_SYSCALL)) < 0)
 		panic("in bc_pgfault, sys_page_map: %e", r);
 
 	// Check that the block we read was allocated. (exercise for
@@ -80,7 +87,25 @@ flush_block(void *addr)
 		panic("flush_block of bad va %08x", addr);
 
 	// LAB 5: Your code here.
-	panic("flush_block not implemented");
+	pte_t pte = uvpt[PGNUM(addr)];
+
+	void *fault_addr = ROUNDDOWN(addr,4096);
+	//first check it is present
+	if (!va_is_mapped(fault_addr)) {
+		return;
+	}
+	if (!va_is_dirty(fault_addr)) {
+		return;
+	}
+
+	int secno = blockno * 8;
+	int sec_size = 8;
+	ide_write(secno,fault_addr,sec_size);
+	int perm = uvpt[PGNUM(addr)] & PTE_SYSCALL;
+	perm &= ~PTE_D;
+	sys_page_map(0,fault_addr,0,fault_addr,perm);
+
+	
 }
 
 // Test that the block cache works, by smashing the superblock and
