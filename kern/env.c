@@ -288,7 +288,7 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	env_free_list = e->env_link;
 	*newenv_store = e;
 
-	// cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
+	cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, e->env_id);
 	return 0;
 }
 
@@ -438,11 +438,14 @@ env_create(uint8_t *binary, enum EnvType type)
 		panic("env_create fail \n");	
 	load_icode(e, binary);
 	e->env_type = type;
+<<<<<<< HEAD
 	//Allos I/O permission LAB5
 	//Exercise 1
 	if (type == ENV_TYPE_FS) {
 		e->env_tf.tf_eflags |= FL_IOPL_MASK;
 	}
+=======
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 }
 
 //

@@ -707,12 +707,21 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	if (!pte) {
 		return -E_NO_MEM;
 	}
+<<<<<<< HEAD
 
 	pp->pp_ref++;	
 	if (*pte & PTE_P) { //& with PTE_P = 0x001 to check if this page is already present
 		page_remove(pml4e, va); //remove the page
 	}
 
+=======
+	if (*pte & PTE_P) { //& with PTE_P = 0x001 to check if this page is already present
+		page_remove(pml4e, va); //remove the page
+	}
+		
+	
+	pp->pp_ref++;
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 	*pte = (page2pa(pp) & ~0xFFF) | perm | PTE_P; //set permission for the physical entry
 	pml4e[PML4(va)] |= perm | PTE_P; //set the permission for the virtual one 
 	return 0;

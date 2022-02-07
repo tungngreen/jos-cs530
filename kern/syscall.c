@@ -537,8 +537,11 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
     		return sys_ipc_recv((void *)a1);
 		case SYS_ipc_try_send:
     		return sys_ipc_try_send(a1, a2, (void *)a3, a4);
+<<<<<<< HEAD
 		case SYS_env_set_trapframe:
 			return sys_env_set_trapframe(a1,(struct Trapframe *) a2);
+=======
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 		default:
 			return -E_NO_SYS;
 	}

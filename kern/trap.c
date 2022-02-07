@@ -431,6 +431,10 @@ page_fault_handler(struct Trapframe *tf)
 			utf = (struct UTrapframe *)(UXSTACKTOP - sizeof(struct UTrapframe));
 		}
 		user_mem_assert(curenv, (void*)utf, sizeof(struct UTrapframe), PTE_W | PTE_U | PTE_P);
+<<<<<<< HEAD
+=======
+        
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 
 		utf->utf_rsp = tf->tf_rsp;
 		utf->utf_rip = tf->tf_rip;

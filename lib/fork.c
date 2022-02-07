@@ -79,8 +79,11 @@ pgfault(struct UTrapframe *utf)
 	pte_t pte = uvpt[PGNUM(addr)];
     envid_t envid = thisenv->env_id;
 
+<<<<<<< HEAD
 	envid = 0;
 
+=======
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 	//pgfault() checks for FEC_WR in the error code to make sure that this is a write
 	if ((FEC_WR & err) == 0) {
 		panic("pgfault: not a write\n");
@@ -91,20 +94,32 @@ pgfault(struct UTrapframe *utf)
 	}
 
 	//Allocate a new page, map it at a temporary location (PFTEMP)
+<<<<<<< HEAD
 	r = sys_page_alloc(envid, PFTEMP, (PTE_W | PTE_U | PTE_P));
+=======
+	r = sys_page_alloc(0, PFTEMP, (PTE_W | PTE_U | PTE_P));
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 	if (r < 0) {
 		panic("pgfault: %e", r);
 	}
 
 	// copy the data from the old page to the new page
 	memcpy(PFTEMP, ROUNDDOWN(addr, PGSIZE), PGSIZE);
+<<<<<<< HEAD
 	r = sys_page_map(envid, PFTEMP, envid, ROUNDDOWN(addr, PGSIZE), (PTE_W | PTE_U | PTE_P));
+=======
+	r = sys_page_map(0, PFTEMP, 0, ROUNDDOWN(addr, PGSIZE), (PTE_W | PTE_U | PTE_P));
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 	if (r < 0) {
 		panic("pgfault: %e", r);
 	}
 
 	//unmap the temporary page
+<<<<<<< HEAD
 	r = sys_page_unmap(envid, PFTEMP);
+=======
+	r = sys_page_unmap(0, PFTEMP);
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 	if (r < 0) {
 		panic("pgfault: %e", r);
 	}
@@ -131,6 +146,7 @@ duppage(envid_t envid, unsigned pn)
 	// LAB 4: Your code here.
 	uintptr_t va = pn * PGSIZE;
 	int ret;
+<<<<<<< HEAD
 	//LAB5 5:
 	if (uvpt[pn] & PTE_SHARE) {
 		ret = sys_page_map(thisenv->env_id, (void *) va, envid, (void *)va, uvpt[pn] & PTE_SYSCALL);
@@ -138,6 +154,9 @@ duppage(envid_t envid, unsigned pn)
 			return ret;
 	}
 	else if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
+=======
+	if ((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
+>>>>>>> c206f3e4ae03c21c63910b4bc344b41eb1ae4d13
 		
 		ret = sys_page_map(thisenv->env_id, (void *) va, envid, (void *) va, PTE_COW | PTE_U | PTE_P);
 		if (ret < 0) {

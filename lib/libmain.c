@@ -19,12 +19,6 @@ libmain(int argc, char **argv)
 	// 		thisenv = &envs[i];
 	// 		cprintf("env %x\n", &envs[i]);
 	// 		break;
-	// 	}
-	// }
-	cprintf("env %x\n", &envs[ENVX(envid)]);
-	thisenv = &envs[ENVX(envid)];
-
-	
 
 	// save the name of the program so that panic() can use it
 	if (argc > 0)
