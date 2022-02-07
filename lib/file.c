@@ -73,19 +73,21 @@ open(const char *path, int mode)
 	if (strlen(path) > MAXPATHLEN)
 		return -E_BAD_PATH;
 	int r;
-	struct Fd *fd_store = NULL;
+	struct Fd *fd_store;
 	r = fd_alloc(&fd_store);
 	if (r < 0) {
 		fd_close(fd_store,0);
 		return r;
 	}
-	r = sys_page_alloc(0,fd_store,PTE_P | PTE_U | PTE_W);
-	fd_store->fd_dev_id='f';
-	if (r < 0) {
-		fd_close(fd_store,0);
-		return r;
-	}
-	memcpy(fsipcbuf.open.req_path,path,MAXPATHLEN);
+	strcpy(fsipcbuf.open.req_path, path);
+	// r = sys_page_alloc(0,fd_store,PTE_P | PTE_U | PTE_W);
+	// fd_store->fd_dev_id='f';
+	// if (r < 0) {
+	// 	fd_close(fd_store,0);
+	// 	return r;
+	// }
+	//memcpy(fsipcbuf.open.req_path,path,MAXPATHLEN);
+
 	fsipcbuf.open.req_omode = mode;
 	r = fsipc(FSREQ_OPEN,fd_store);
 	if (r < 0) {

@@ -97,7 +97,6 @@ spawn(const char *prog, const char **argv)
 		cprintf("elf magic %08x want %08x\n", elf->e_magic, ELF_MAGIC);
 		return -E_NOT_EXEC;
 	}
-
 	// Create new child environment
 	if ((r = sys_exofork()) < 0)
 		return r;
@@ -106,7 +105,6 @@ spawn(const char *prog, const char **argv)
 	// Set up trap frame, including initial stack.
 	child_tf = envs[ENVX(child)].env_tf;
 	child_tf.tf_rip = elf->e_entry;
-
 	if ((r = init_stack(child, argv, &child_tf.tf_rsp)) < 0)
 		return r;
 
@@ -128,6 +126,9 @@ spawn(const char *prog, const char **argv)
 	// Copy shared library state.
 	if ((r = copy_shared_pages(child)) < 0)
 		panic("copy_shared_pages: %e", r);
+
+	
+	cprintf("open xxxxx\n");
 
 	if ((r = sys_env_set_trapframe(child, &child_tf)) < 0)
 		panic("sys_env_set_trapframe: %e", r);
